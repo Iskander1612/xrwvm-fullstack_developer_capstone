@@ -1,0 +1,25 @@
+FROM node:22-bookworm-slim AS frontend
+WORKDIR /frontend
+COPY server/frontend/package*.json ./
+RUN npm ci
+COPY server/frontend ./
+RUN npm run build
+FROM node:22-bookworm-slim AS api
+WORKDIR /api
+COPY server/database/package*.json ./
+RUN npm ci --omit=dev
+FROM mongo:8.0
+RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-venv ca-certificates libstdc++6 && rm -rf /var/lib/apt/lists/*
+COPY --from=api /usr/local/bin/node /usr/local/bin/node
+WORKDIR /app
+COPY server/requirements.txt /app/requirements.txt
+COPY server/djangoapp/microservices/requirements.txt /app/sentiment-requirements.txt
+RUN python3 -m venv /opt/venv && /opt/venv/bin/pip install --no-cache-dir -r requirements.txt -r sentiment-requirements.txt
+COPY server /app
+COPY --from=frontend /frontend/build /app/frontend/build
+COPY --from=api /api/node_modules /app/database/node_modules
+COPY scripts/start-codeengine.sh /app/start-codeengine.sh
+RUN chmod +x /app/start-codeengine.sh && /opt/venv/bin/python manage.py collectstatic --noinput
+ENV PATH="/opt/venv/bin:${PATH}" PORT=8000 DJANGO_DEBUG=0 ALLOWED_HOSTS=.codeengine.appdomain.cloud,localhost,127.0.0.1 TRUST_PROXY=1 DATABASE_PATH=/data/db/django.sqlite3
+EXPOSE 8000
+ENTRYPOINT ["/app/start-codeengine.sh"]

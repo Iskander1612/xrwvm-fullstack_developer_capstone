@@ -42,3 +42,9 @@ Photography served from Unsplash: car photo by [Campbell](https://unsplash.com/p
 ### Submission evidence
 
 Evidence is generated from real executions and browser interactions and stored locally under `submission/` (ignored by Git). Deployment URLs and CI results are recorded only after successful execution.
+
+### IBM Cloud Code Engine educational deployment
+
+`Dockerfile.codeengine` packages the Django app, Node API, Flask sentiment service, and MongoDB into a single educational container. The services communicate over localhost and only port 8000 is exposed. `scripts/start-codeengine.sh` initializes the databases and starts Gunicorn. This reduces the resources required in the temporary Skills Network project.
+
+The Code Engine lab deployment uses ephemeral filesystem storage. Keep one instance for the demo; reviews and registered accounts can reset when the instance is replaced. The separate-service Compose configuration supports persistent volumes for development. A production deployment should use managed persistent databases and a stable secret supplied by the hosting platform.
