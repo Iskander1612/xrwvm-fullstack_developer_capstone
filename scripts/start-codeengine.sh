@@ -6,7 +6,7 @@ export MONGODB_URI=mongodb://127.0.0.1:27017/dealershipsDB
 export BACKEND_URL=http://127.0.0.1:3030
 export SENTIMENT_URL=http://127.0.0.1:5050
 mongod --dbpath /data/db --bind_ip 127.0.0.1 --logpath /data/db/mongod.log --fork
-node database/app.js &
+PORT=3030 node database/app.js &
 (cd djangoapp/microservices && gunicorn --bind 127.0.0.1:5050 app:app) &
 python manage.py migrate --noinput
 python manage.py seed_cars
