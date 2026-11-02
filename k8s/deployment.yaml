@@ -1,0 +1,35 @@
+# Build and push images to your registry, then replace IMAGE_REGISTRY below.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bestcars-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: bestcars-web}
+  template:
+    metadata:
+      labels: {app: bestcars-web}
+    spec:
+      containers:
+        - name: web
+          image: IMAGE_REGISTRY/bestcars-web:latest
+          ports: [{containerPort: 8000}]
+          env:
+            - {name: DJANGO_DEBUG, value: "0"}
+            - {name: BACKEND_URL, value: "http://bestcars-database:3030"}
+            - {name: SENTIMENT_URL, value: "http://bestcars-sentiment:5050"}
+            - name: DJANGO_SECRET_KEY
+              valueFrom:
+                secretKeyRef: {name: bestcars-secrets, key: django-secret-key}
+            - name: ALLOWED_HOSTS
+              valueFrom:
+                configMapKeyRef: {name: bestcars-config, key: allowed-hosts}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: bestcars-web}
+spec:
+  selector: {app: bestcars-web}
+  ports: [{port: 8000, targetPort: 8000}]
+  type: ClusterIP

@@ -1,0 +1,32 @@
+name: Cars Dealership CI
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: server/frontend/package-lock.json
+      - name: Install Python dependencies
+        run: pip install -r server/requirements.txt -r server/djangoapp/microservices/requirements.txt
+      - name: Install and build React
+        working-directory: server/frontend
+        run: npm ci && CI=true npm run build
+      - name: Check Django and migrations
+        working-directory: server
+        run: python manage.py check && python manage.py makemigrations --check --dry-run
+      - name: Run Django application tests
+        working-directory: server
+        run: python manage.py test djangoapp -v 2
+      - name: Check Node API syntax
+        run: node --check server/database/app.js
+      - name: Verify sentiment analysis
+        run: python -c "import runpy; app=runpy.run_path('server/djangoapp/microservices/app.py')['app']; assert app.test_client().get('/analyze/Fantastic%20services').json['sentiment']=='positive'"
